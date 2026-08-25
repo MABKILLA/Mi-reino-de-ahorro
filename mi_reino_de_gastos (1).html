@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Reino de Gastos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Quicksand:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blush:#FFF6FA;
+    --blush-deep:#FDE9F1;
+    --rose:#D6417B;
+    --rose-deep:#B22F63;
+    --gold:#C9A227;
+    --gold-deep:#A8841D;
+    --gold-soft:#F1E2B4;
+    --plum:#5B2140;
+    --lavender:#E9DFF7;
+    --sage:#3F8F5C;
+    --line:#F2D3E1;
+    --shadow: 0 10px 30px rgba(91,33,64,0.08);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(1200px 600px at 50% -10%, var(--blush-deep), var(--blush) 60%);
+    font-family:'Quicksand', sans-serif;
+    color:var(--plum);
+    min-height:100vh;
+    padding: 32px 16px 64px;
+  }
+
+  .wrap{max-width:880px;margin:0 auto;}
+
+  /* ---------- HERO ---------- */
+  .hero{ text-align:center; padding: 20px 12px 8px; }
+  .crest{ width:64px;height:64px;margin:0 auto 6px; display:block; }
+  h1{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:700;
+    font-size: clamp(34px, 6vw, 52px);
+    margin: 4px 0 6px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(180deg, var(--rose-deep), var(--rose));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .subtitle{ font-size:15px; color:var(--plum); opacity:0.75; font-weight:500; margin-bottom: 22px; }
+
+  /* ---------- STATS ---------- */
+  .stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom: 22px; }
+  .stat-card{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px 10px; text-align:center; box-shadow: var(--shadow); }
+  .stat-value{ font-family:'Cormorant Garamond', serif; font-weight:700; font-size: 24px; color:var(--rose-deep); }
+  .stat-value.gold{ color: var(--gold-deep); }
+  .stat-value.balance-pos{ color: var(--sage); }
+  .stat-value.balance-neg{ color: var(--rose-deep); }
+  .stat-label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; color:var(--plum); opacity:0.65; margin-top:4px; }
+
+  /* ---------- TABS ---------- */
+  .tabs{ display:flex; gap:10px; margin-bottom:16px; }
+  .tab-btn{
+    flex:1; border:1.5px solid var(--line); background:#fff; border-radius:14px;
+    padding:12px; font-family:'Quicksand', sans-serif; font-weight:700; font-size:14px;
+    color:var(--plum); opacity:0.55; cursor:pointer; transition: all .15s;
+  }
+  .tab-btn.active.gasto{ background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color:#fff; opacity:1; border-color:transparent; box-shadow:0 6px 16px rgba(178,47,99,0.28); }
+  .tab-btn.active.ingreso{ background: linear-gradient(135deg, #E0BB4A, var(--gold-deep)); color:#fff; opacity:1; border-color:transparent; box-shadow:0 6px 16px rgba(168,132,29,0.28); }
+
+  /* ---------- FORM CARD ---------- */
+  .card{ background:#fff; border-radius:24px; border:1px solid var(--line); box-shadow: var(--shadow); padding: 26px 24px; margin-bottom: 26px; }
+  .card-title{ font-family:'Cormorant Garamond', serif; font-weight:700; font-size:22px; color:var(--rose-deep); margin: 0 0 16px; display:flex; align-items:center; gap:8px; }
+  .card-title.gold{ color: var(--gold-deep); }
+  .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px 16px; }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field.full{grid-column: 1 / -1;}
+  label{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--plum); opacity:0.7; }
+  input, select, textarea{
+    font-family:'Quicksand', sans-serif; font-size:15px; font-weight:500; color:var(--plum);
+    background: var(--blush); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px;
+    outline:none; transition: border-color .15s, box-shadow .15s; width:100%;
+  }
+  input:focus, select:focus, textarea:focus{ border-color: var(--rose); box-shadow: 0 0 0 3px rgba(214,65,123,0.15); }
+  textarea{resize:vertical; min-height:40px;}
+
+  .submit-btn{
+    margin-top:18px; width:100%; border:none; border-radius:14px; padding:14px;
+    font-family:'Quicksand', sans-serif; font-weight:700; font-size:15px; letter-spacing:0.02em;
+    color:#fff; cursor:pointer; transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .submit-btn.gasto{ background: linear-gradient(135deg, var(--rose), var(--rose-deep)); box-shadow: 0 8px 20px rgba(178,47,99,0.3); }
+  .submit-btn.ingreso{ background: linear-gradient(135deg, #E0BB4A, var(--gold-deep)); box-shadow: 0 8px 20px rgba(168,132,29,0.3); }
+  .submit-btn:hover{ transform: translateY(-1px); }
+  .submit-btn:active{ transform: translateY(0); }
+
+  /* ---------- LIST ---------- */
+  .list-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .export-btn{
+    border:1.5px solid var(--gold); background: var(--gold-soft); color:#7A5C0E;
+    font-family:'Quicksand', sans-serif; font-weight:700; font-size:13px; border-radius:12px;
+    padding:9px 16px; cursor:pointer; transition: background .15s;
+  }
+  .export-btn:hover{ background:#EAD79A; }
+
+  .entry{ display:grid; grid-template-columns: auto 1fr auto auto; align-items:center; gap:12px; padding:14px 6px; border-bottom:1px solid var(--line); }
+  .entry:last-child{border-bottom:none;}
+  .gem{ width:10px;height:10px;border-radius:50%; flex-shrink:0; }
+  .entry-main{min-width:0;}
+  .entry-desc{ font-weight:700; font-size:14.5px; color:var(--plum); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .entry-meta{ font-size:12px; color:var(--plum); opacity:0.6; margin-top:2px; }
+  .entry-amount{ font-family:'Cormorant Garamond', serif; font-weight:700; font-size:19px; white-space:nowrap; }
+  .entry-amount.gasto{ color: var(--rose-deep); }
+  .entry-amount.ingreso{ color: var(--sage); }
+  .delete-btn{ background:none; border:none; color:var(--plum); opacity:0.35; font-size:18px; cursor:pointer; line-height:1; padding:4px 6px; transition: opacity .15s, color .15s; }
+  .delete-btn:hover{ opacity:1; color:var(--rose-deep); }
+
+  .empty-state{ text-align:center; padding: 30px 10px; color:var(--plum); opacity:0.55; font-size:14px; }
+
+  .footnote{ text-align:center; font-size:12px; color:var(--plum); opacity:0.55; margin-top: 10px; line-height:1.6; }
+
+  @media (max-width: 560px){
+    .form-grid{grid-template-columns: 1fr;}
+    .stats{grid-template-columns: 1fr 1fr;}
+    .stat-card:nth-child(3){grid-column: 1 / -1;}
+    .entry{grid-template-columns: auto 1fr auto;}
+    .entry-amount{grid-row: 2; grid-column: 2; justify-self:start;}
+    .delete-btn{grid-row:1; grid-column:3;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <svg class="crest" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 44 L10 24 L20 34 L32 16 L44 34 L54 24 L56 44 Z" fill="none" stroke="#C9A227" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="10" cy="22" r="3" fill="#D6417B"/>
+      <circle cx="32" cy="14" r="3.4" fill="#D6417B"/>
+      <circle cx="54" cy="22" r="3" fill="#D6417B"/>
+      <path d="M8 48 H56" stroke="#C9A227" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <h1>Mi Reino de Gastos</h1>
+    <div class="subtitle">Anota tus gastos e ingresos y mira crecer tu tesoro de datos ✨</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value gold" id="statIngresos">S/ 0.00</div>
+      <div class="stat-label">Total ingresos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statGastos">S/ 0.00</div>
+      <div class="stat-label">Total gastos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statBalance">S/ 0.00</div>
+      <div class="stat-label">Balance</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn active gasto" id="tabGastoBtn">💗 Anotar gasto</button>
+    <button type="button" class="tab-btn ingreso" id="tabIngresoBtn">🌟 Anotar ingreso</button>
+  </div>
+
+  <div class="card" id="cardGasto">
+    <div class="card-title">💌 Gasto nuevo</div>
+    <form id="gastoForm">
+      <div class="form-grid">
+        <div class="field">
+          <label for="gFecha">Fecha</label>
+          <input type="date" id="gFecha" required>
+        </div>
+        <div class="field">
+          <label for="gCategoria">Categoría</label>
+          <select id="gCategoria" required></select>
+        </div>
+        <div class="field full">
+          <label for="gDescripcion">Descripción</label>
+          <input type="text" id="gDescripcion" placeholder="Ej: Almuerzo con amigas" required>
+        </div>
+        <div class="field">
+          <label for="gMonto">Monto (S/)</label>
+          <input type="number" id="gMonto" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+        <div class="field">
+          <label for="gMetodo">Método de pago</label>
+          <select id="gMetodo" required></select>
+        </div>
+        <div class="field full">
+          <label for="gNotas">Notas (opcional)</label>
+          <textarea id="gNotas" placeholder="Algún detalle extra..."></textarea>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn gasto">Añadir gasto ✨</button>
+    </form>
+  </div>
+
+  <div class="card" id="cardIngreso" style="display:none;">
+    <div class="card-title gold">🌟 Ingreso nuevo</div>
+    <form id="ingresoForm">
+      <div class="form-grid">
+        <div class="field">
+          <label for="iFecha">Fecha</label>
+          <input type="date" id="iFecha" required>
+        </div>
+        <div class="field">
+          <label for="iFuente">Fuente</label>
+          <select id="iFuente" required></select>
+        </div>
+        <div class="field full">
+          <label for="iMonto">Monto (S/)</label>
+          <input type="number" id="iMonto" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+        <div class="field full">
+          <label for="iNotas">Notas (opcional)</label>
+          <textarea id="iNotas" placeholder="Algún detalle extra..."></textarea>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn ingreso">Añadir ingreso 🌟</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="list-header">
+      <div class="card-title" style="margin:0;">💎 Mis movimientos</div>
+      <button class="export-btn" id="exportBtn">👑 Descargar Excel</button>
+    </div>
+    <div id="entryList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:6px;">🔗 Respaldo automático en Google Sheets</div>
+    <p style="font-size:13px; opacity:0.75; margin: 0 0 16px; line-height:1.5;">
+      Pega la URL de tu Google Apps Script para que cada gasto e ingreso se copie solo a tu Google Sheet, en su pestaña correspondiente.
+    </p>
+    <div class="form-grid">
+      <div class="field full">
+        <label for="backupUrl">URL del Web App</label>
+        <input type="url" id="backupUrl" placeholder="https://script.google.com/macros/s/..../exec">
+      </div>
+    </div>
+    <button type="button" class="submit-btn gasto" id="saveBackupBtn">Guardar respaldo</button>
+    <div id="backupStatus" style="font-size:13px; font-weight:600; margin-top:12px; text-align:center;"></div>
+    <button type="button" id="resendBtn" style="display:block; width:100%; margin-top:10px; background:none; border:none; color:var(--rose-deep); font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer; text-decoration:underline;">📤 Reenviar todo al Sheet</button>
+  </div>
+
+  <div class="footnote">
+    Todo se guarda automáticamente en esta página. "Descargar Excel" arma un libro con las<br>
+    mismas hojas y columnas de tu "Mis Gastos Princesa" (Mis Gastos + Ingresos mensuales).
+  </div>
+
+</div>
+
+<script>
+  const CATEGORIES = [
+    { name: "Comida", color: "#E8637A" }, { name: "Transporte", color: "#5B7FBD" },
+    { name: "Ropa", color: "#B679C9" }, { name: "Belleza", color: "#E893B8" },
+    { name: "Entretenimiento", color: "#9B6FCE" }, { name: "Salud", color: "#5FA88A" },
+    { name: "Educación", color: "#D4A639" }, { name: "Casa", color: "#A8455B" },
+    { name: "Regalos", color: "#C23B5B" }, { name: "Ahorro", color: "#7FA84A" },
+    { name: "Otros", color: "#A98B94" },
+  ];
+  const METODOS = ["Efectivo", "Yape", "Plin", "Tarjeta de débito", "Tarjeta de crédito", "Transferencia"];
+  const FUENTES = ["Sueldo", "Propina", "Freelance", "Venta", "Regalo", "Otro"];
+  const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const GOLD_GEM = "#C9A227";
+
+  const STORAGE_KEY = "reino-movimientos";
+  const BACKUP_KEY = "reino-gastos-backup-url";
+
+  let entries = []; // {id, tipo:'gasto'|'ingreso', fecha, monto, notas, categoria?, descripcion?, metodo?, fuente?}
+  let backupUrl = "";
+
+  // ---- poblar selects ----
+  const catSel = document.getElementById("gCategoria");
+  CATEGORIES.forEach(c => { const o=document.createElement("option"); o.value=c.name; o.textContent=c.name; catSel.appendChild(o); });
+  const metSel = document.getElementById("gMetodo");
+  METODOS.forEach(m => { const o=document.createElement("option"); o.value=m; o.textContent=m; metSel.appendChild(o); });
+  const fueSel = document.getElementById("iFuente");
+  FUENTES.forEach(f => { const o=document.createElement("option"); o.value=f; o.textContent=f; fueSel.appendChild(o); });
+
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("gFecha").value = today;
+  document.getElementById("iFecha").value = today;
+
+  // ---- tabs ----
+  const tabGastoBtn = document.getElementById("tabGastoBtn");
+  const tabIngresoBtn = document.getElementById("tabIngresoBtn");
+  const cardGasto = document.getElementById("cardGasto");
+  const cardIngreso = document.getElementById("cardIngreso");
+  tabGastoBtn.addEventListener("click", () => {
+    tabGastoBtn.classList.add("active"); tabIngresoBtn.classList.remove("active");
+    cardGasto.style.display = "block"; cardIngreso.style.display = "none";
+  });
+  tabIngresoBtn.addEventListener("click", () => {
+    tabIngresoBtn.classList.add("active"); tabGastoBtn.classList.remove("active");
+    cardIngreso.style.display = "block"; cardGasto.style.display = "none";
+  });
+
+  function colorForCat(catName){
+    const found = CATEGORIES.find(c => c.name === catName);
+    return found ? found.color : "#A98B94";
+  }
+  function formatMoney(n){
+    return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function computeMes(fechaStr){
+    const idx = parseInt(fechaStr.split("-")[1], 10) - 1;
+    return MESES[idx] || "";
+  }
+  function escapeHtml(str){
+    const div = document.createElement("div"); div.textContent = str; return div.innerHTML;
+  }
+
+  async function loadEntries(){
+    try {
+      const res = await window.storage.get(STORAGE_KEY, false);
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    } catch (e) { entries = []; }
+    render();
+  }
+  async function saveEntries(){
+    try {
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+      if (!result) console.error("No se pudo guardar");
+    } catch (e) { console.error("Error guardando:", e); }
+  }
+
+  function render(){
+    const totalIngresos = entries.filter(e => e.tipo === "ingreso").reduce((s,e) => s + e.monto, 0);
+    const totalGastos = entries.filter(e => e.tipo === "gasto").reduce((s,e) => s + e.monto, 0);
+    const balance = totalIngresos - totalGastos;
+
+    document.getElementById("statIngresos").textContent = formatMoney(totalIngresos);
+    document.getElementById("statGastos").textContent = formatMoney(totalGastos);
+    const balEl = document.getElementById("statBalance");
+    balEl.textContent = formatMoney(balance);
+    balEl.classList.remove("balance-pos","balance-neg");
+    balEl.classList.add(balance >= 0 ? "balance-pos" : "balance-neg");
+
+    const list = document.getElementById("entryList");
+    list.innerHTML = "";
+    if (entries.length === 0){
+      list.innerHTML = '<div class="empty-state">Aún no has anotado nada.<br>¡Añade tu primer movimiento arriba! 💗</div>';
+      return;
+    }
+    const sorted = [...entries].sort((a,b) => b.fecha.localeCompare(a.fecha) || b.id - a.id);
+    sorted.forEach(e => {
+      const row = document.createElement("div");
+      row.className = "entry";
+
+      const gem = document.createElement("div");
+      gem.className = "gem";
+      gem.style.background = e.tipo === "ingreso" ? GOLD_GEM : colorForCat(e.categoria);
+
+      const main = document.createElement("div");
+      main.className = "entry-main";
+      if (e.tipo === "gasto"){
+        main.innerHTML = `<div class="entry-desc">${escapeHtml(e.descripcion)}</div>
+          <div class="entry-meta">${e.fecha} · ${escapeHtml(e.categoria)} · ${escapeHtml(e.metodo)}</div>`;
+      } else {
+        main.innerHTML = `<div class="entry-desc">${escapeHtml(e.fuente)}</div>
+          <div class="entry-meta">${e.fecha} · Ingreso${e.notas ? " · " + escapeHtml(e.notas) : ""}</div>`;
+      }
+
+      const amount = document.createElement("div");
+      amount.className = "entry-amount " + e.tipo;
+      amount.textContent = (e.tipo === "ingreso" ? "+" : "-") + formatMoney(e.monto);
+
+      const del = document.createElement("button");
+      del.className = "delete-btn"; del.innerHTML = "✕"; del.title = "Eliminar";
+      del.onclick = () => deleteEntry(e.id);
+
+      row.appendChild(gem); row.appendChild(main); row.appendChild(amount); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  async function deleteEntry(id){
+    entries = entries.filter(e => e.id !== id);
+    await saveEntries();
+    render();
+  }
+
+  // ---- respaldo Google Sheets ----
+  function updateBackupStatus(){
+    const el = document.getElementById("backupStatus");
+    if (backupUrl){
+      el.textContent = "✅ Respaldo activado — todo viaja solo a tu Sheet";
+      el.style.color = "#3F8F5C"; el.style.opacity = "1";
+    } else {
+      el.textContent = "Sin respaldo configurado todavía";
+      el.style.color = "var(--plum)"; el.style.opacity = "0.55";
+    }
+  }
+  async function loadBackupUrl(){
+    try {
+      const res = await window.storage.get(BACKUP_KEY, false);
+      backupUrl = res && res.value ? res.value : "";
+    } catch (e) { backupUrl = ""; }
+    document.getElementById("backupUrl").value = backupUrl;
+    updateBackupStatus();
+  }
+  async function saveBackupUrl(url){
+    try {
+      await window.storage.set(BACKUP_KEY, url, false);
+      backupUrl = url;
+      updateBackupStatus();
+    } catch (e) { console.error("No se pudo guardar la URL de respaldo:", e); }
+  }
+  async function sendToSheet(entry){
+    if (!backupUrl) return;
+    const payload = entry.tipo === "gasto"
+      ? { tipo:"gasto", fecha:entry.fecha, mes:computeMes(entry.fecha), categoria:entry.categoria,
+          descripcion:entry.descripcion, monto:entry.monto, metodo:entry.metodo, notas:entry.notas||"" }
+      : { tipo:"ingreso", fecha:entry.fecha, mes:computeMes(entry.fecha), fuente:entry.fuente,
+          monto:entry.monto, notas:entry.notas||"" };
+    try {
+      await fetch(backupUrl, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) { console.error("No se pudo enviar el respaldo:", e); }
+  }
+
+  document.getElementById("saveBackupBtn").addEventListener("click", async () => {
+    const url = document.getElementById("backupUrl").value.trim();
+    if (url && !url.startsWith("https://script.google.com/")){
+      alert("Esa URL no parece ser de Google Apps Script. Revisa que empiece con https://script.google.com/");
+      return;
+    }
+    await saveBackupUrl(url);
+  });
+  document.getElementById("resendBtn").addEventListener("click", async () => {
+    if (!backupUrl){ alert("Primero guarda la URL de tu respaldo 💗"); return; }
+    if (entries.length === 0){ alert("No tienes movimientos anotados todavía"); return; }
+    const btn = document.getElementById("resendBtn");
+    btn.textContent = "Enviando...";
+    for (const entry of entries){ await sendToSheet(entry); }
+    btn.textContent = "✅ Enviado — revisa tu Sheet";
+    setTimeout(() => { btn.textContent = "📤 Reenviar todo al Sheet"; }, 3000);
+  });
+
+  // ---- formularios ----
+  document.getElementById("gastoForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fecha = document.getElementById("gFecha").value;
+    const categoria = document.getElementById("gCategoria").value;
+    const descripcion = document.getElementById("gDescripcion").value.trim();
+    const monto = parseFloat(document.getElementById("gMonto").value);
+    const metodo = document.getElementById("gMetodo").value;
+    const notas = document.getElementById("gNotas").value.trim();
+    if (!fecha || !categoria || !descripcion || isNaN(monto) || !metodo) return;
+
+    const entry = { id: Date.now()+Math.random(), tipo:"gasto", fecha, categoria, descripcion, monto, metodo, notas };
+    entries.push(entry);
+    await saveEntries();
+    render();
+    sendToSheet(entry);
+
+    document.getElementById("gDescripcion").value = "";
+    document.getElementById("gMonto").value = "";
+    document.getElementById("gNotas").value = "";
+    document.getElementById("gDescripcion").focus();
+  });
+
+  document.getElementById("ingresoForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const fecha = document.getElementById("iFecha").value;
+    const fuente = document.getElementById("iFuente").value;
+    const monto = parseFloat(document.getElementById("iMonto").value);
+    const notas = document.getElementById("iNotas").value.trim();
+    if (!fecha || !fuente || isNaN(monto)) return;
+
+    const entry = { id: Date.now()+Math.random(), tipo:"ingreso", fecha, fuente, monto, notas };
+    entries.push(entry);
+    await saveEntries();
+    render();
+    sendToSheet(entry);
+
+    document.getElementById("iMonto").value = "";
+    document.getElementById("iNotas").value = "";
+    document.getElementById("iMonto").focus();
+  });
+
+  // ---- exportar a Excel (2 hojas, igual que el libro maestro) ----
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    if (entries.length === 0){ alert("Todavía no tienes movimientos para exportar 💗"); return; }
+
+    const gastos = entries.filter(e => e.tipo === "gasto").sort((a,b) => a.fecha.localeCompare(b.fecha));
+    const ingresos = entries.filter(e => e.tipo === "ingreso");
+
+    const gastosRows = [["Fecha","Mes","Categoría","Descripción","Monto (S/)","Método de Pago","Notas"]];
+    gastos.forEach(e => {
+      gastosRows.push([e.fecha, computeMes(e.fecha), e.categoria, e.descripcion, e.monto, e.metodo, e.notas||""]);
+    });
+
+    const ingresosByMonth = {};
+    MESES.forEach(m => { ingresosByMonth[m] = { total: 0, fuentes: new Set() }; });
+    ingresos.forEach(e => {
+      const mes = computeMes(e.fecha);
+      if (!ingresosByMonth[mes]) ingresosByMonth[mes] = { total: 0, fuentes: new Set() };
+      ingresosByMonth[mes].total += e.monto;
+      if (e.fuente) ingresosByMonth[mes].fuentes.add(e.fuente);
+    });
+    const ingresosRows = [["Mes","Ingreso (S/)","Fuente / Notas"]];
+    MESES.forEach(m => {
+      const d = ingresosByMonth[m];
+      ingresosRows.push([m, d.total, Array.from(d.fuentes).join(", ")]);
+    });
+
+    const wsG = XLSX.utils.aoa_to_sheet(gastosRows);
+    wsG["!cols"] = [{wch:12},{wch:12},{wch:16},{wch:28},{wch:12},{wch:18},{wch:22}];
+    const wsI = XLSX.utils.aoa_to_sheet(ingresosRows);
+    wsI["!cols"] = [{wch:14},{wch:14},{wch:28}];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsG, "Mis Gastos");
+    XLSX.utils.book_append_sheet(wb, wsI, "Ingresos");
+    XLSX.writeFile(wb, "Mis_Gastos_Reino.xlsx");
+  });
+
+  loadEntries();
+  loadBackupUrl();
+</script>
+</body>
+</html>
